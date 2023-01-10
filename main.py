@@ -26,7 +26,7 @@ def bulid_window():
 def Random_Positions():
   randomlist = []
   for i in range(0, 140):
-    o = random.randrange(0, 1700, 10)
+    o = random.randrange(0, 1000, 10)
     if o not in randomlist:
       randomlist.append(o)
   return randomlist
@@ -112,12 +112,17 @@ Samples_number =0
 
 
 
-while Samples_number < 30:
+while Samples_number < 10:
     root = tkinter.Tk()
     n = random.randint(5, 10)
-    root.geometry("1700x1000")
-    # set the Gui maximized
-    root.state('zoomed')
+    # Get the current screen width and height
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    print(screen_width, screen_height)
+
+    # Set the dimensions of the window
+    root.geometry(f"{screen_width}x{screen_height}")
+
     list_of_Element_position = []
     Random_Position_Button_x = []
     Random_Position_Button_x = Random_Positions_x()
