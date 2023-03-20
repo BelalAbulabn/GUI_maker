@@ -4,7 +4,8 @@ import time
 import pyautogui
 import csv
 from nltk.corpus import  words
-word_list = words.words()
+import json
+
 
 def save_element_positions_to_csv(list_of_Element_position, Samples_number):
     # Define the output file path
@@ -23,8 +24,77 @@ def save_element_positions_to_csv(list_of_Element_position, Samples_number):
                 csv_out.writerow([list_of_Element_position[i][0], list_of_Element_position[i][1][0], list_of_Element_position[i][2][0], list_of_Element_position[i][1][1], list_of_Element_position[i][2][1], list_of_Element_position[i][3], list_of_Element_position[i][4]])
 
     return output_file_path
+class Coordinates:
+    def __init__(self, x, y, x2, y2):
+        self.x = x
+        self.y = y
+        self.x2 = x2
+        self.y2 = y2
 
+    def to_dict(self):
+        return {
+            "x": self.x,
+            "y": self.y,
+            "x2": self.x2,
+            "y2": self.y2,
+        }
+class Font:
+    def __init__(self, size='', style='', color='', weight=''):
+        self.size = size
+        self.style = style
+        self.color = color
+        self.weight = weight
+    def to_dict(self):
+        return {
+            "size": self.size,
+            "style": self.style,
+            "color": self.color,
+            "weight": self.weight
+        }
+class annotations:
+    def __init__(self, Type, coordinates, text, font, checked):
+        self.Type = Type
+        self.coordinates = coordinates
+        self.text = text
+        self.font = font
+        self.checked = checked
+    def to_dict(self):
+        return {
+            "Type": self.Type,
+            "coordinates": self.coordinates.to_dict(),
+            "text": self.text,
+            "font": self.font.to_dict(),
+            "checked": self.checked
+                }
+def generate_json(list_of_elements, filename, Sample_number):
+    """
+    Generates a JSON object from a list of elements and writes it to a file.
+    Each element in the list should be in the format (label, (x, y), (x2, y2), text, checked, font)
 
+    :param list_of_elements: list, elements to convert to JSON
+    :param filename: string, the name of the file to write the JSON to
+    :return: None
+    """
+    image_dict = {"image": Sample_number, "annotations": []}
+    for element in list_of_elements:
+        Type_Element = element[0]
+        x, y = element[1]
+        x2, y2 = element[2]
+        coord_text = element[3] if len(element) > 3 else ''
+        coord_checked = element[4] if len(element) > 4 else ''
+        font_style,font_size,font_color,font_weight = element[5] if len(element) > 5 else ''
+        coord = Coordinates(x, y, x2, y2)
+        font = Font(font_style, font_size, font_color, font_weight)
+
+        # Annotations =annotations(Type_Element, coord, font, coord_text, coord_checked)
+        label_dict = annotations(Type_Element, coord, coord_text, font,coord_checked).to_dict()
+
+        image_dict["annotations"].append(label_dict)
+
+    with open(filename, 'w') as outfile:
+        json.dump(image_dict, outfile, indent=4)
+
+    print(f"JSON object successfully written to {filename}")
 class RandomFont:
     def __init__(self):
         pass
@@ -79,18 +149,7 @@ class RandomTextGenerator:
         else:
             return self.random_string(random.randint(10, 20))
 
-# a function random_string to create a random string
-def random_sentence(n):
-    sentence = ""
-    for i in range(0, n):
-        sentence += random.choice(word_list) + " "
-    return sentence
-def random_string(n):
-    chars = "abcdefghijklmnopqrstuvwxyz1234567890+-*/:;.,!@#$%^&*()"
-    String = ""
-    for c in range(n):
-        String += random.choice(chars)
-    return String
+
 def get_element_position(element):
     # Get the element position
     element_position = element.winfo_geometry().split("+")
@@ -137,10 +196,8 @@ def create_buttons(num_rows, num_cols, screen_width, screen_height, list_of_elem
     rf = RandomFont()
     font = rf.random_font()
     generator = RandomTextGenerator()
-    print(generator.generate(5))
 
     btn.config(font=(font[0:2]), fg=font[3])
-    # print(max_height_value)
     # Place button on the window line by line
     #if the max value is smaller than 10 than x position ,still the same els than replace the x position
     if max_height_value < screen_height / vertical_distance * i and max_width_value < screen_width / horizental_distance * j:
@@ -196,7 +253,6 @@ def create_labels(num_rows, num_cols, screen_width, screen_height, list_of_eleme
     # Set button size randomly
     random_word_number =random.randint(1, 4)
 
-    String_lbl = random_sentence(random_word_number)
     generator = RandomTextGenerator()
     lbl.config(text=generator.generate(5))
     # lbl.config(width=random_size()[0], height=random_size()[1])
@@ -262,9 +318,8 @@ def create_checkbuttons(num_rows, num_cols, screen_width, screen_height, list_of
     rf = RandomFont()
     font = rf.random_font()
     chk.config(font=(font[0:2]), fg=font[3])
-    String_Check = random_sentence(1)
-    chk.configure(text=String_Check)
-
+    generator = RandomTextGenerator()
+    chk.configure(text=generator.generate(1))
     root.update()
     time.sleep(0.1)
     # Get checkbutton position coordinates
@@ -305,7 +360,6 @@ while Samples_number < 5:
     random_number = random.uniform(1, 3)
     screen_width = int (root.winfo_screenwidth()/round(random_number / step) )
     screen_height = int (root.winfo_screenheight()/round(random_number / step) )
-    # print(calculate_shift(root)[0])
 
     # make the window fullscreen
     root.attributes('-fullscreen', True)
@@ -344,7 +398,6 @@ while Samples_number < 5:
                 create_checkbuttons(i, j, screen_width, screen_height, list_of_Element_position, root,max_height_value,max_width_value,disatnince_between_elements_vertical,disatnince_between_elements_horizontal)
             #find the maximum height of the elements in the line
             
-            # print(list_of_Element_position[max_height][2][1])
             list_of_row_height.append(list_of_Element_position[max_height][2][1])
             list_of_Element_position
             list_of_column_width.append(list_of_Element_position[max_height][1][1])
@@ -353,23 +406,8 @@ while Samples_number < 5:
             max_height= max_height + 1
         max_height_value =  max(list_of_row_height)
         max_width_value = max(list_of_column_width)
-        print(max(list_of_column_width))
-
-        # print(max(list_of_row_height))
-        # print(max_value)
-
-# if j == 0:
-#     print("Yes")
-            # print(list_of_Element_position)
 
 
-
-
-    # #print the number of the iteration
-    # print("the number of the iteration is ", Samples_number)
-    # print(list_of_Element_position)
-    # lines[Samples_number]= "the number of the iteration is "+ str(Samples_number) +str(list_of_Element_position) + "\n"
-    #  with open(filename, "w") as file:
     path = "C:\\Users\\abulabn\\Desktop\\Test\\"
     filename = "screenshot_region_"
     take_screenshot(path,region, filename, Samples_number)
