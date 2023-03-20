@@ -5,6 +5,7 @@ import pyautogui
 import csv
 from nltk.corpus import  words
 import json
+from tkinter import ttk
 
 
 def save_element_positions_to_csv(list_of_Element_position, Samples_number):
@@ -25,48 +26,81 @@ def save_element_positions_to_csv(list_of_Element_position, Samples_number):
 
     return output_file_path
 class Coordinates:
-    def __init__(self, x, y, x2, y2):
+    def __init__(self, x, x2, y, y2):
         self.x = x
-        self.y = y
         self.x2 = x2
+        self.y = y
         self.y2 = y2
 
     def to_dict(self):
         return {
             "x": self.x,
-            "y": self.y,
             "x2": self.x2,
+            "y": self.y,
             "y2": self.y2,
         }
 class Font:
-    def __init__(self, size='', style='', color='', weight=''):
-        self.size = size
+    def __init__(self, style='' ,size='', weight='',color=''):
         self.style = style
-        self.color = color
+        self.size = size
         self.weight = weight
+        self.color = color
     def to_dict(self):
         return {
-            "size": self.size,
             "style": self.style,
-            "color": self.color,
-            "weight": self.weight
+            "size": self.size,
+            "weight": self.weight,
+            "color": self.color
         }
 class annotations:
-    def __init__(self, Type, coordinates, text, font, checked):
-        self.Type = Type
-        self.coordinates = coordinates
-        self.text = text
-        self.font = font
-        self.checked = checked
+    VALID_TYPES = ['type1', 'Label', 'scrollbar', 'dropdown_menu'] # Valid annotation types
+
+    def __init__(self, Type, coordinates, text=None, font=None, checked=None):
+
+        if Type == 'dropdown_menu' or Type == "Button"or Type =="Label":
+            self.Type = Type
+            self.coordinates = coordinates
+            self.text = text
+            self.font = font
+        elif Type == 'scrollbar':
+            self.Type = Type
+            self.coordinates = coordinates
+            self.text = text
+
+
+        else:
+            self.Type = Type
+            self.coordinates = coordinates
+            self.text = text
+            self.font = font
+            self.checked = checked
+
     def to_dict(self):
-        return {
-            "Type": self.Type,
-            "coordinates": self.coordinates.to_dict(),
-            "text": self.text,
-            "font": self.font.to_dict(),
-            "checked": self.checked
-                }
-def generate_json(list_of_elements, filename, Sample_number):
+        if self.Type == 'dropdown_menu' or self.Type == "Button" or self.Type == "Label":
+            return {
+                "Type": self.Type,
+                "coordinates": self.coordinates.to_dict(),
+                "text": self.text,
+                "font": self.font.to_dict(),
+            }
+        elif self.Type == 'scrollbar':
+            return {
+                "Type": self.Type,
+                "coordinates": self.coordinates.to_dict(),
+                "orientation ": self.text,
+            }
+        else:
+            return {
+                "Type": self.Type,
+                "coordinates": self.coordinates.to_dict(),
+                "text": self.text,
+                "font": self.font.to_dict(),
+                "checked": self.checked
+            }
+
+
+
+def generate_json(list_of_elements, Sample_number):
     """
     Generates a JSON object from a list of elements and writes it to a file.
     Each element in the list should be in the format (label, (x, y), (x2, y2), text, checked, font)
@@ -91,10 +125,12 @@ def generate_json(list_of_elements, filename, Sample_number):
 
         image_dict["annotations"].append(label_dict)
 
-    with open(filename, 'w') as outfile:
+    # Write the dictionary to a JSON file
+    output_file_path = f"C:\\Users\\abulabn\\Desktop\\Test\\{Sample_number}.json"
+    with open(output_file_path, "w") as outfile:
         json.dump(image_dict, outfile, indent=4)
 
-    print(f"JSON object successfully written to {filename}")
+    return output_file_path
 class RandomFont:
     def __init__(self):
         pass
@@ -124,7 +160,21 @@ class RandomFont:
         # Generate random font
         font = (self.font_style(), self.font_size(), self.font_weight(), self.font_color())
         return font
+class RandomTextlistforDropdownmenu:
+    def random_number():
+        # Generate random number
+        number = random.randint(1, 6)
+        return number
+    def random_text_list(number):
+        # Generate random text list
+        text_list = []
 
+        for i in range(0, number):
+            generator=RandomTextGenerator()
+            randomText = generator.generate(3)
+            text_list.append(randomText)
+
+        return text_list
 
 class RandomTextGenerator:
     def __init__(self):
@@ -148,6 +198,32 @@ class RandomTextGenerator:
             return self.random_sentence(random.randint(1, n))
         else:
             return self.random_string(random.randint(10, 20))
+
+class RandomScrollbar:
+    #@staticmethod
+    def random_scrollbar():
+        # Generate random scrollbar
+        scrollbar = random.choice(["horizontal", "vertical","vertical","vertical"])
+        return scrollbar
+
+    #@staticmethod
+    def random_scrollbar_width(scrollbar_orientation):
+        # Generate random scrollbar width
+        if scrollbar_orientation == "horizontal":
+            scrollbar_width = random.randint(40, 100)
+        elif scrollbar_orientation == "vertical":
+            scrollbar_width = None
+        return scrollbar_width
+
+    #@staticmethod
+    def random_scrollbar_height(scrollbar_orientation):
+        # Generate random scrollbar height
+        if scrollbar_orientation == "vertical":
+            scrollbar_height = random.randint(40, 100)
+        elif scrollbar_orientation == "horizontal":
+            scrollbar_height = None
+        return scrollbar_height
+
 
 
 def get_element_position(element):
@@ -196,8 +272,7 @@ def create_buttons(num_rows, num_cols, screen_width, screen_height, list_of_elem
     rf = RandomFont()
     font = rf.random_font()
     generator = RandomTextGenerator()
-
-    btn.config(font=(font[0:2]), fg=font[3])
+    btn.config(font=(font[0:3]), fg=font[3])
     # Place button on the window line by line
     #if the max value is smaller than 10 than x position ,still the same els than replace the x position
     if max_height_value < screen_height / vertical_distance * i and max_width_value < screen_width / horizental_distance * j:
@@ -212,8 +287,9 @@ def create_buttons(num_rows, num_cols, screen_width, screen_height, list_of_elem
     #to make button with random size biger than text in it we need to make the button bigger than the text how ?
     #we need to make the button bigger than the text and the text bigger than the button
 
-
-    btn.config(text=generator.generate(1))
+    #config the text of the button
+    buttons_text = generator.generate(1)
+    btn.config(text=buttons_text)
     btn.config(width=random_size()[0], height=random_size()[1])
     #config the text of the button
 
@@ -225,7 +301,7 @@ def create_buttons(num_rows, num_cols, screen_width, screen_height, list_of_elem
     # Get button position coordinates
     widget_x1, widget_y1 = btn.winfo_rootx(), btn.winfo_rooty()
     widget_x2, widget_y2 = widget_x1 + btn.winfo_width(), widget_y1 + btn.winfo_height()
-    button_position = ("Button " + str(i) + "_" + str(j), (widget_x1, widget_x2), (widget_y1, widget_y2))
+    button_position = ("Button", (widget_x1, widget_x2), (widget_y1, widget_y2),buttons_text,"Checked",(font[0],font[1],font[2], font[3]))
     # Set button font randomly
 
 
@@ -245,16 +321,17 @@ def create_labels(num_rows, num_cols, screen_width, screen_height, list_of_eleme
         lbl.place(x=max_width_value, y=screen_height / vertical_distance * i)
     else:
         lbl.place(x=max_width_value, y=max_height_value)
-    # config the font of the button
+    # config the font of the label
     rf = RandomFont()
     font = rf.random_font()
-    lbl.config(font=(font[0:2]), fg=font[3])
+    lbl.config(font=(font[0:3]), fg=font[3])
 
-    # Set button size randomly
-    random_word_number =random.randint(1, 4)
-
+    #set random text to the label
     generator = RandomTextGenerator()
-    lbl.config(text=generator.generate(5))
+    label_text = generator.generate(5)
+
+
+    lbl.config(text=label_text)
     # lbl.config(width=random_size()[0], height=random_size()[1])
 
     # Configure the font of the Label widget using random_font() function
@@ -264,7 +341,7 @@ def create_labels(num_rows, num_cols, screen_width, screen_height, list_of_eleme
     # Get button position coordinates
     widget_x1, widget_y1 = lbl.winfo_rootx(), lbl.winfo_rooty()
     widget_x2, widget_y2 = widget_x1 + lbl.winfo_width(), widget_y1 + lbl.winfo_height()
-    label_position = ("Label " + str(i) + "_" + str(j), (widget_x1, widget_x2), (widget_y1, widget_y2))
+    label_position = ("Label", (widget_x1, widget_x2), (widget_y1, widget_y2),label_text,"Checked",(font[0],font[1],font[2], font[3]))
     list_of_element_positions.append(label_position)
     # Return the list of button positions
     return list_of_element_positions
@@ -274,7 +351,6 @@ def create_radiobuttons(num_rows, num_cols, screen_width, screen_height, list_of
     # Place radiobutton on the window line by line
 
     # Set radiobutton size randomly
-    rad.config(width=random_size()[0], height=random_size()[1])
     if max_height_value < screen_height / vertical_distance * i and max_width_value < screen_width / horizental_distance * j:
         rad.place(x=screen_width / horizental_distance * j, y=screen_height / vertical_distance * i)
     elif max_height_value > screen_height / vertical_distance * i and max_width_value < screen_width / horizental_distance * j:
@@ -286,17 +362,18 @@ def create_radiobuttons(num_rows, num_cols, screen_width, screen_height, list_of
     # Configure the font of the Radiobutton widget using random_font() function
     rf = RandomFont()
     font = rf.random_font()
-    rad.config(font=(font[0:2]), fg=font[3])
+    rad.config(font=(font[0:3]), fg=font[3])
     generator = RandomTextGenerator()
-
-    rad.configure(text=generator.generate(1))
+    #set random text to the radiobutton
+    Radiobutton_text = generator.generate(1)
+    rad.configure(text=Radiobutton_text)
     root.update()
     time.sleep(0.1)
 
     # Get radiobutton position coordinates
     widget_x1, widget_y1 = rad.winfo_rootx(), rad.winfo_rooty()
     widget_x2, widget_y2 = widget_x1 + rad.winfo_width(), widget_y1 + rad.winfo_height()
-    radiobutton_position = ("Radiobutton " + str(i) + "_" + str(j), (widget_x1, widget_x2), (widget_y1, widget_y2))
+    radiobutton_position = ("Radiobutton", (widget_x1, widget_x2), (widget_y1, widget_y2),Radiobutton_text,"Checked",(font[0],font[1],font[2], font[3]))
     list_of_element_positions.append(radiobutton_position)
     # Return the list of radiobutton positions
     return list_of_element_positions
@@ -317,20 +394,113 @@ def create_checkbuttons(num_rows, num_cols, screen_width, screen_height, list_of
     # Configure the font of the Checkbutton widget using random_font() function
     rf = RandomFont()
     font = rf.random_font()
-    chk.config(font=(font[0:2]), fg=font[3])
+    chk.config(font=(font[0:3]), fg=font[3])
+    #set random text to the checkbutton
     generator = RandomTextGenerator()
-    chk.configure(text=generator.generate(1))
+    Checkbutton_text = generator.generate(1)
+    chk.configure(text=Checkbutton_text)
     root.update()
     time.sleep(0.1)
     # Get checkbutton position coordinates
     widget_x1, widget_y1 = chk.winfo_rootx(), chk.winfo_rooty()
     widget_x2, widget_y2 = widget_x1 + chk.winfo_width(), widget_y1 + chk.winfo_height()
-    checkbutton_position = ("Checkbutton " + str(i) + "_" + str(j), (widget_x1, widget_x2), (widget_y1, widget_y2))
+    checkbutton_position = ("Checkbutton", (widget_x1, widget_x2), (widget_y1, widget_y2),Checkbutton_text,"Checked ",(font[0],font[1],font[2], font[3]))
+    list_of_element_positions.append(checkbutton_position)
+    # Return the list of checkbutton positions
+    return list_of_element_positions
+#function to create Scrollbars
+def create_scrollbars(num_rows, num_cols, screen_width, screen_height, list_of_element_positions, root,max_hight_value,max_width_value,horizental_distance,vertical_distance):
+
+    # Use the class methods to generate random values for the scrollbar configuration
+    scrollbar_orientation = RandomScrollbar.random_scrollbar()
+    scrollbar_width = RandomScrollbar.random_scrollbar_width(scrollbar_orientation)
+    scrollbar_height = RandomScrollbar.random_scrollbar_height(scrollbar_orientation)
+    # Create a scrollbar
+    scrollbar  = tk.Scrollbar(root, orient=scrollbar_orientation)
+    # Place checkbutton on the window line by line
+    if max_height_value < screen_height / vertical_distance * i and max_width_value < screen_width / horizental_distance * j:
+        scrollbar.place(x=screen_width / horizental_distance * j, y=screen_height / vertical_distance * i, width=scrollbar_width, height=scrollbar_height)
+    elif max_height_value > screen_height / vertical_distance * i and max_width_value < screen_width / horizental_distance * j:
+        scrollbar.place(x=screen_width / horizental_distance * j, y=max_height_value, width=scrollbar_width, height=scrollbar_height)
+    elif max_height_value < screen_height / vertical_distance * i and max_width_value > screen_width / horizental_distance * j:
+        scrollbar.place(x=max_width_value, y=screen_height / vertical_distance * i, width=scrollbar_width, height=scrollbar_height)
+    else:
+        scrollbar.place(x=max_width_value, y=max_height_value, width=scrollbar_width, height=scrollbar_height)
+    # Set checkbutton size randomly
+    # Configure the font of the Checkbutton widget using random_font() function
+    root.update()
+    time.sleep(0.1)
+    # Get checkbutton position coordinates
+    widget_x1, widget_y1 = scrollbar.winfo_rootx(), scrollbar.winfo_rooty()
+    widget_x2, widget_y2 = widget_x1 + scrollbar.winfo_width(), widget_y1 + scrollbar.winfo_height()
+    checkbutton_position = ("scrollbar", (widget_x1, widget_x2), (widget_y1, widget_y2),scrollbar_orientation,"Checked ",("font[0]","font[1]","font[2]", "font[3]"))
+    # print("scrollbar " + str(i) + "_" + str(j),scrollbar_orientation,scrollbar_height,scrollbar_width)
     list_of_element_positions.append(checkbutton_position)
     # Return the list of checkbutton positions
     return list_of_element_positions
 
-#function to calculate the shift in x and y direction
+#function to create dropdown menus
+def create_dropdown_menus(num_rows, num_cols, screen_width, screen_height, list_of_element_positions, root,max_hight_value,max_width_value,horizental_distance,vertical_distance):
+
+    number_for_dropdown = RandomTextlistforDropdownmenu.random_number()
+    # Use the class methods to generate random list of options for the dropdown menu
+    dropdown_menu_options = RandomTextlistforDropdownmenu.random_text_list(number_for_dropdown)
+    # Use the class methods to generate random values for the dropdown menu configuration
+    random_text =dropdown_menu_options[0]
+    selected_option = tk.StringVar(value=random_text)
+    # Create a dropdown menu
+    dropdown_menu = tk.OptionMenu(root, selected_option, *dropdown_menu_options)
+    # Place dropdown_menu on the window line by line
+    if max_height_value < screen_height / vertical_distance * i and max_width_value < screen_width / horizental_distance * j:
+        dropdown_menu.place(x=screen_width / horizental_distance * j, y=screen_height / vertical_distance * i,)
+    elif max_height_value > screen_height / vertical_distance * i and max_width_value < screen_width / horizental_distance * j:
+        dropdown_menu.place(x=screen_width / horizental_distance * j, y=max_height_value)
+    elif max_height_value < screen_height / vertical_distance * i and max_width_value > screen_width / horizental_distance * j:
+        dropdown_menu.place(x=max_width_value, y=screen_height / vertical_distance * i)
+    else:
+        dropdown_menu.place(x=max_width_value, y=max_height_value)
+    # Set checkbutton size randomly
+    # Configure the font of the Checkbutton widget using random_font() function
+    # config the font of the dropdown menu
+    rf = RandomFont()
+    font = rf.random_font()
+    dropdown_menu.config(font=(font[0:3]), fg=font[3])
+    root.update()
+    time.sleep(0.1)
+    # Get checkbutton position coordinates
+    widget_x1, widget_y1 = dropdown_menu.winfo_rootx(), dropdown_menu.winfo_rooty()
+    widget_x2, widget_y2 = widget_x1 + dropdown_menu.winfo_width(), widget_y1 + dropdown_menu.winfo_height()
+    checkbutton_position = ( "dropdown_menu", (widget_x1, widget_x2), (widget_y1, widget_y2), random_text,"Checked ", (font[0], font[1], font[2], font[3]))
+    # print("scrollbar " + str(i) + "_" + str(j), scrollbar_orientation, scrollbar_height, scrollbar_width)
+    list_of_element_positions.append(checkbutton_position)
+    # Return the list of checkbutton positions
+    return list_of_element_positions
+
+#function to create tabs
+# def create_tabs(num_rows, num_cols, screen_width, screen_height, list_of_element_positions, root,max_hight_value,max_width_value,horizental_distance,vertical_distance):
+#     tab = ttk.Notebook(root)
+#     tab.pack()
+#     # Place tab on the window line by line
+#     if max_height_value < screen_height / vertical_distance * i and max_width_value < screen_width / horizental_distance * j:
+#         tab.place(x=screen_width / horizental_distance * j, y=screen_height / vertical_distance * i)
+#     elif max_height_value > screen_height / vertical_distance * i and max_width_value < screen_width / horizental_distance * j:
+#         tab.place(x=screen_width / horizental_distance * j, y=max_height_value)
+#     elif max_height_value < screen_height / vertical_distance * i and max_width_value > screen_width / horizental_distance * j:
+#         tab.place(x=max_width_value, y=screen_height / vertical_distance * i)
+#     else:
+#         tab.place(x=max_width_value, y=max_height_value)
+#     # Set tab size randomly
+#     tab.config(width=8, height=5)
+#     root.update()
+#     time.sleep(0.01)
+#     # Get tab position coordinates
+#     widget_x1, widget_y1 = tab.winfo_rootx(), tab.winfo_rooty()
+#     widget_x2, widget_y2 = widget_x1 + tab.winfo_width(), widget_y1 + tab.winfo_height()
+#     tab_position = ("Tab " + str(i) + "_" + str(j), (widget_x1, widget_x2), (widget_y1, widget_y2), "Tab")
+#     # list_of_element_positions.append(tab_position)
+#     # Return the list of tab positions
+#     # return list_of_element_positions
+# #function to calculate the shift in x and y direction
 def calculate_shift(root):
     lbl = tk.Label(root, text="")
     # Place button on the window line by line
@@ -370,8 +540,8 @@ while Samples_number < 5:
     screen_width, screen_height = root.winfo_width(), root.winfo_height()
     region = (x, y, screen_width,  screen_height)
     max_height = 0
-    Rows_number = 5
-    Columns_number = 5
+    Rows_number = 10
+    Columns_number = 10
     max_height_value=0
     max_width_value=0
     disatnince_between_elements_horizontal =10
@@ -387,7 +557,7 @@ while Samples_number < 5:
 
         max_width = 0
         for j in range(Columns_number):
-            x=random.randint(0, 3)
+            x=random.randint(0, 5)
             if x == 0:
                  create_buttons(i, j, screen_width, screen_height, list_of_Element_position, root,max_height_value,max_width_value,disatnince_between_elements_vertical,disatnince_between_elements_horizontal)
             elif x == 1:
@@ -396,6 +566,11 @@ while Samples_number < 5:
                 create_radiobuttons(i, j, screen_width, screen_height, list_of_Element_position, root,max_height_value,max_width_value,disatnince_between_elements_vertical,disatnince_between_elements_horizontal)
             elif x == 3:
                 create_checkbuttons(i, j, screen_width, screen_height, list_of_Element_position, root,max_height_value,max_width_value,disatnince_between_elements_vertical,disatnince_between_elements_horizontal)
+            elif x == 4:
+                create_scrollbars(i, j, screen_width, screen_height, list_of_Element_position, root,max_height_value,max_width_value,disatnince_between_elements_vertical,disatnince_between_elements_horizontal)
+            elif x == 5:
+                create_dropdown_menus(i, j, screen_width, screen_height, list_of_Element_position, root,max_height_value,max_width_value,disatnince_between_elements_vertical,disatnince_between_elements_horizontal)
+            #     create_tabs(i, j, screen_width, screen_height, list_of_Element_position, root,max_height_value,max_width_value,disatnince_between_elements_vertical,disatnince_between_elements_horizontal)
             #find the maximum height of the elements in the line
             
             list_of_row_height.append(list_of_Element_position[max_height][2][1])
@@ -414,6 +589,8 @@ while Samples_number < 5:
     # #         file.writelines(" ".join(["the number of the iteration is ", str(Samples_number), str(list_of_Element_position)]) + "\n")
 
     save_element_positions_to_csv(list_of_Element_position, Samples_number)
+    generate_json(list_of_Element_position, Samples_number)
+
     Samples_number = Samples_number + 1
     # destroy the gui
     print(list_of_Element_position)
